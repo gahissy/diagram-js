@@ -14,7 +14,14 @@ import resizeModule from 'lib/features/resize';
 
 import CroppingConnectionDocking from 'lib/layout/CroppingConnectionDocking';
 
-import { asTRBL } from 'lib/layout/LayoutUtil';
+import {
+  asTRBL,
+  getMid
+} from 'lib/layout/LayoutUtil';
+
+import { GRID_DIMENSIONS } from 'lib/features/grid-snapping/Grid';
+
+import { SPACING } from 'lib/features/grid-snapping/GridSnapping';
 
 var layoutModule = {
   connectionDocking: [ 'type', CroppingConnectionDocking ]
@@ -25,6 +32,8 @@ import {
 } from '../../../util/MockEvents';
 
 import { isString } from 'min-dash';
+
+import { attr as svgAttr } from 'tiny-svg';
 
 var LOW_PRIORITY = 500;
 
@@ -717,6 +726,73 @@ describe('features/grid-snapping', function() {
       expect(gfx.childNodes).to.have.length(0);
     });
 
+
+    describe('update', function() {
+
+      beforeEach(bootstrapDiagram({
+        modules: [
+          modelingModule,
+          gridSnappingModule,
+          moveModule
+        ],
+        canvas: {
+          deferUpdate: false
+        }
+      }));
+
+
+      it('should initially update grid', inject(function(canvas, grid) {
+
+        // then
+        var viewbox = canvas.viewbox(),
+            viewboxMid = getMid(viewbox);
+
+        var gridMid = getMid({
+          x: parseInt(svgAttr(grid.grid, 'x')),
+          y: parseInt(svgAttr(grid.grid, 'y')),
+          width: GRID_DIMENSIONS.width,
+          height: GRID_DIMENSIONS.height
+        });
+
+        // should be centered around viewbox
+        expect(viewboxMid.x).to.be.closeTo(gridMid.x, SPACING / 2);
+        expect(viewboxMid.y).to.be.closeTo(gridMid.y, SPACING / 2);
+      }));
+
+      [
+        { x: 12, y: 24 },
+        { x: 24, y: 48 },
+        { x: 36, y: 72 },
+        { x: 48, y: 96 },
+        { x: 60, y: 120 }
+      ].forEach(function(delta) {
+
+        it('should update on canvas.viewbox.changed ' + JSON.stringify(delta), inject(
+          function(canvas, grid) {
+
+            // when
+            canvas.scroll(delta);
+
+            // then
+            var viewbox = canvas.viewbox(),
+                viewboxMid = getMid(viewbox);
+
+            var gridMid = getMid({
+              x: parseInt(svgAttr(grid.grid, 'x')),
+              y: parseInt(svgAttr(grid.grid, 'y')),
+              width: GRID_DIMENSIONS.width,
+              height: GRID_DIMENSIONS.height
+            });
+
+            // should be centered around viewbox
+            expect(viewboxMid.x).to.be.closeTo(gridMid.x, SPACING / 2);
+            expect(viewboxMid.y).to.be.closeTo(gridMid.y, SPACING / 2);
+          })
+        );
+
+      });
+
+    });
 
     describe('api', function() {
 
